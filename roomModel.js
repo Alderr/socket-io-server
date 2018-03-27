@@ -4,8 +4,8 @@ const { Schema } = require("mongoose");
 mongoose.Promise = global.Promise;
 
 const roomSchema = new Schema({
-  members: [{ type: String, required: true }],
-  googleDoc: { type: String, default: '' },
+  googleDoc: { type: String, default: "" },
+  roomUrl: { type: String, default: "" },
 });
 
 

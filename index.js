@@ -36,7 +36,7 @@ function runServer(port = PORT) {
 }
 
 if (require.main === module) {
-  // dbConnect();
+  dbConnect();
   runServer();
 }
 
@@ -45,19 +45,58 @@ io.on("connection", socket => {
 
   socket.on("disconnect", () => {
     console.log("Disconnection?");
+    // socket.leave();
   });
 
   socket.on('room', (data) => {
     console.log('entering, room triggered..');
-    socket.join(data.room); // room is the # the client will be attached to
-    console.log(socket.rooms); // all rooms made so far
+    socket.join(data.room); //  room is the # the client will be attached to
+
+
+    let rooms = Object.keys(socket.rooms);
+    console.log(rooms); // [ <socket.id>, 'room 237' ]
     console.log(data);
+
+    // if room data exists, send it; if not start from scratch lol
+    RoomModel.findOne({ roomUrl: data.room })
+      .then((response) => {
+      console.log('​-------------------');
+      console.log('FIND ​response', response.googleDoc);
+      console.log('​-------------------');
+        
+      if (response) {
+        console.log('SENT DOC RECIEVE EVENT TO CLIENT');
+        socket.broadcast.to(socket.id).emit('docRecieve', { start: 'new stuff' , model: response.googleDoc });
+      }
+
+      else { 
+        return RoomModel.create({ roomUrl: data.room });
+      }
+
+      }).then((response) => {
+      console.log('​-------------------');
+      console.log('​CREATE response', response);
+      console.log('​-------------------');
+        
+      });
   });
 
   socket.on("docChange", data => {
     console.log('docChange triggered!');
     console.log(data);
-    socket.broadcast.to(data.room).emit('docRecieve', { model: data.model });
+
+    // if room data exists, update it & send; if not start from scratch lol
+    return RoomModel.findOneAndUpdate({ roomUrl: data.room }, { googleDoc : data.model })
+      .then((response) => {
+      console.log('​-------------------');
+      console.log('UPDATE ​response', response);
+      console.log('​-------------------');
+        
+      return socket.broadcast.to(data.room).emit('docRecieve', { model: response.googleDoc });
+  
+
+      // return RoomModel.create({ roomUrl: data.room });
+      });
   });
 });
 
